@@ -1,0 +1,149 @@
+
+
+
+
+compute q dna property/atom quatw quati quatj quatk
+compute shape dna property/atom shapex shapey shapez
+
+
+
+
+dump	  1 all custom 1000 dna.dump &
+	     id x y z c_q[1] c_q[2] c_q[3] c_q[4] &
+	      c_shape[1] c_shape[2] c_shape[3] mol q type
+
+dump_modify 1 sort id
+
+comm_style tiled
+
+thermo_style	custom step temp pe epair ebond ke etotal spcpu
+thermo 1000
+
+
+
+
+
+# minimize first
+
+fix 1 notdna nve
+fix 2 notdna viscous 1000000.0
+
+#fix spring1 
+
+timestep 0.0001
+
+run 1000
+
+
+timestep 0.001
+
+run 1000
+
+
+timestep 0.01
+
+run 1000
+
+
+unfix 2
+
+
+fix 2 notdna viscous 10000.0
+
+
+timestep 0.1
+
+run 1000
+
+timestep 5.0
+
+run 1000
+
+timestep 10.0
+
+run 1000
+
+unfix 1
+unfix 2
+
+
+fix 2 notdna langevin 300.0 300.0 1000.0 123 gjf vhalf
+fix 1 notdna nve
+fix 3 dna_all rigid/nve/small molecule
+fix 4 dna langevin 300.0 300.0 1000.0 123 angmom 3.0 
+
+fix bl all balance 1000 1.0 rcb
+
+#fix C all recenter INIT INIT INIT
+
+run 10000
+
+timestep 10.0
+
+
+
+fix 2 notdna langevin 300.0 300.0 10000.0 123 gjf vhalf
+fix 4 dna langevin 300.0 300.0 10000.0 123 angmom 3.0
+
+fix pull1 end1 drag 0 0 -10000 1.0 0.0
+fix pull2 end2 drag 0 0  10000 1.0 0.0
+
+
+timestep 20.0
+
+
+run 10000
+
+unfix 1
+unfix 2
+unfix 3
+unfix 4
+unfix bl
+unfix pull1
+unfix pull2
+
+
+include replicate_settings.txt
+
+group nucl type <> 20 41
+group dna type 41
+group ps type 42
+group dna_all union dna ps
+group notdna subtract all dna_all
+neigh_modify exclude molecule/intra nucl
+neigh_modify exclude molecule/intra dna_all 
+neigh_modify exclude type 41 42
+neigh_modify exclude type 41 41
+
+
+
+
+fix 2 notdna langevin 300.0 300.0 1000.0 123 gjf vhalf
+fix 1 notdna nve
+fix 3 dna_all rigid/nve/small molecule
+fix 4 dna langevin 300.0 300.0 1000.0 123 angmom 3.0 
+
+fix bl all balance 1000 1.0 rcb
+
+#fix C all recenter INIT INIT INIT
+
+
+timestep 0.1
+
+run 1000
+
+timestep 1.0
+
+run 10000
+
+timestep 10.0
+
+run 1000
+
+
+fix 2 notdna langevin 300.0 300.0 100000.0 123 gjf vhalf
+fix 4 dna langevin 300.0 300.0 100000.0 123 angmom 3.0
+
+run 100000
+
+
